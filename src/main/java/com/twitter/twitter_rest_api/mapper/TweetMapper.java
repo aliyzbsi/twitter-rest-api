@@ -50,6 +50,7 @@ public class TweetMapper {
 
         response.setTweetType(TweetType.RETWEET);
         response.setParentTweetID(originalTweet.getId());
+        response.setParentTweetUserId(originalTweet.getUser().getId());
         response.setRetweetedAt(tweet.getCreatedAt());
         response.setUserId(originalTweet.getUser().getId());
     }

@@ -56,5 +56,6 @@ public class TweetResponse {
     private String originalUserFullName;
     private String originalUserProfileImage;
     private Long parentTweetID;
+    private Long parentTweetUserId;
     private LocalDateTime retweetedAt;
 }

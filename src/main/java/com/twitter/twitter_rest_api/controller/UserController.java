@@ -24,17 +24,25 @@ public class UserController {
         this.userService = userService;
     }
     @GetMapping("/me")
-    @Operation(summary = "Get current user", description = "Returns the authenticated user's details")
+    @Operation(
+            summary = "Get current user",
+            description = "Returns the authenticated user's details. Requires JWT token."
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved user details"),
-            @ApiResponse(responseCode = "401", description = "Not authenticated")
+            @ApiResponse(responseCode = "401", description = "Not authenticated"),
+            @ApiResponse(responseCode = "403", description = "Invalid or missing JWT token")
     })
-    public UserResponse getCurrentUser(@AuthenticationPrincipal UserDetails userDetails){
+    public UserResponse getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         return userService.getCurrentUser(userDetails.getUsername());
     }
 
     @GetMapping("/{id}")
-    public UserResponse getUserById(@PathVariable("id") Long id){
+    @Operation(
+            summary = "Get user by ID",
+            description = "Returns user details by ID. Requires JWT token."
+    )
+    public UserResponse getUserById(@PathVariable("id") Long id) {
         return userService.getById(id);
     }
 

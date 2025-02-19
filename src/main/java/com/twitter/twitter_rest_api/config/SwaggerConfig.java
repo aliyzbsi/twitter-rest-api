@@ -13,21 +13,23 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @SecurityScheme(
-        name = "basicAuth",
+        name = "bearerAuth",
         type = SecuritySchemeType.HTTP,
-        scheme = "basic"
+        scheme = "bearer",
+        bearerFormat = "JWT"
 )
 public class SwaggerConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
-                .addSecurityItem(new SecurityRequirement().addList("basicAuth"))
+                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
                 .components(new Components()
-                        .addSecuritySchemes("basicAuth",
+                        .addSecuritySchemes("bearerAuth",
                                 new io.swagger.v3.oas.models.security.SecurityScheme()
                                         .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
-                                        .scheme("basic")))
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")))
                 .info(new Info()
                         .title("Twitter Management API")
                         .description("Twitter CRUD operations API documentation")
