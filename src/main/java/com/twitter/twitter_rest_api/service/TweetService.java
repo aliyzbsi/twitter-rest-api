@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface TweetService {
     Page<TweetResponse> findAll(Pageable pageable, String userEmail);
     TweetResponse findById(Long id,String userEmail);
-    List<Tweet> findByQuery(String keyword);
+
     TweetResponse update(Long id, Tweet tweet, String userEmail);
     TweetResponse delete(Long id, String userEmail);
 

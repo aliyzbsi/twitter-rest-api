@@ -16,8 +16,16 @@ import java.util.Set;
 
 public interface TweetRepository extends JpaRepository<Tweet,Long> {
 
-    @Query("SELECT t FROM Tweet t WHERE LOWER(t.content) LIKE LOWER(CONCAT('%',:keyword,'%'))")
-    List<Tweet> findByQuery(String keyword);
+    // Tweet içeriği ve kullanıcı adına göre arama
+    @Query("SELECT DISTINCT t FROM Tweet t LEFT JOIN FETCH t.user u WHERE " +
+            "LOWER(t.content) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Tweet> searchTweets(@Param("keyword") String keyword, Pageable pageable);
+
+    // Hashtag araması için metod
+    @Query("SELECT t FROM Tweet t WHERE " +
+            "t.content LIKE CONCAT('%#', :hashtag, '%')")
+    Page<Tweet> findByHashtag(@Param("hashtag") String hashtag, Pageable pageable);
 
     @Query("SELECT t FROM Tweet t WHERE t.user.id = :userId ORDER BY t.createdAt DESC")
     Page<Tweet> findByUserId(@Param("userId") Long userId, Pageable pageable);

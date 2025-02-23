@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,34 +54,40 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Successfully authenticated"),
             @ApiResponse(responseCode = "401", description = "Invalid credentials")
     })
-   
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
-        try {
-            // Mevcut login işlemi
-            AuthResponse authResponse = authenticationService.login(loginRequest.getEmail(),loginRequest.getPassword());
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest){
+        AuthResponse authResponse=authenticationService.login(loginRequest.getEmail(),
+                loginRequest.getPassword());
+        ResponseCookie accessTokenCookie=createCookie(
+                "accessToken",
+                authResponse.accessToken(),
+                30*60
+        );
+        ResponseCookie refreshTokenCookie=createCookie(
+                "refreshToken",
+                authResponse.refreshToken(),
+                7*24*60*60
+        );
 
-            // Cookie'leri set et
-            Cookie accessTokenCookie = new Cookie("accessToken", authResponse.accessToken());
-            accessTokenCookie.setHttpOnly(true);
-            accessTokenCookie.setSecure(false); // Development için false, production'da true olmalı
-            accessTokenCookie.setPath("/");
-            accessTokenCookie.setDomain("localhost");
-            accessTokenCookie.setMaxAge(86400); // 1 gün
+        UserResponse userResponse = new UserResponse(
+                authResponse.user().id(),
+                authResponse.user().firstAndLastName(),
+                authResponse.user().username(),
+                authResponse.user().email(),
+                authResponse.user().bio(),
+                authResponse.user().profileImage(),
+                authResponse.user().headerImage(),
+                authResponse.user().followersCount(),
+                authResponse.user().followingCount(),
+                authResponse.user().tweetsCount(),
+                authResponse.user().verified(),
+                authResponse.user().privateAccount()
+        );
 
-            Cookie refreshTokenCookie = new Cookie("refreshToken", authResponse.refreshToken());
-            refreshTokenCookie.setHttpOnly(true);
-            refreshTokenCookie.setSecure(false);
-            refreshTokenCookie.setPath("/");
-            refreshTokenCookie.setDomain("localhost");
-            refreshTokenCookie.setMaxAge(604800); // 7 gün
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(userResponse);
 
-            response.addCookie(accessTokenCookie);
-            response.addCookie(refreshTokenCookie);
-
-            return ResponseEntity.ok(authResponse);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Authentication failed");
-        }
     }
 
     @PostMapping("/refresh")

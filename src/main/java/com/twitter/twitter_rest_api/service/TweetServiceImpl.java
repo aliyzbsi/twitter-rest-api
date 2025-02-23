@@ -91,15 +91,7 @@ public class TweetServiceImpl implements TweetService {
 
     }
 
-    @Override
-    public List<Tweet> findByQuery(String keyword) {
 
-        if (keyword == null || keyword.trim().isEmpty()) {
-            throw new ApiException("Search keyword cannot be empty", HttpStatus.BAD_REQUEST);
-        }
-        return tweetRepository.findByQuery(keyword);
-
-    }
 
     @Override
     public Page<TweetResponse> findRepliesByTweetId(Long tweetId, Pageable pageable, String username) {

@@ -1,11 +1,14 @@
 package com.twitter.twitter_rest_api.controller;
 
 import com.twitter.twitter_rest_api.dto.*;
+import com.twitter.twitter_rest_api.entity.MediaType;
 import com.twitter.twitter_rest_api.entity.Tweet;
 import com.twitter.twitter_rest_api.service.LikeService;
+import com.twitter.twitter_rest_api.service.S3Service;
 import com.twitter.twitter_rest_api.service.TweetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,8 +24,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/tweet")
@@ -31,10 +36,12 @@ public class TweetController {
 
     private final TweetService tweetService;
     private final LikeService likeService;
+    private final S3Service s3Service;
     @Autowired
-    public TweetController(LikeService likeService, TweetService tweetService) {
+    public TweetController(LikeService likeService, TweetService tweetService,S3Service s3Service) {
         this.likeService = likeService;
         this.tweetService = tweetService;
+        this.s3Service=s3Service;
     }
 
     @GetMapping
@@ -81,23 +88,56 @@ public class TweetController {
         return ResponseEntity.ok(tweetService.findById(id, userDetails.getUsername()));
     }
 
-    @GetMapping("/search")
-    @Operation(summary = "İçeriğine göre tweet ara")
-    public ResponseEntity<List<Tweet>> findByQueryWithKeyword(@RequestParam("keyword") String keyword) {
-        return ResponseEntity.ok(tweetService.findByQuery(keyword));
-    }
+    
 
 
-    @PostMapping
-    @SecurityRequirement(name = "basicAuth")
-    @Operation(summary = "Yeni Tweet")
+    @Operation(
+            summary = "Kitap kapak fotoğrafı yükleme",
+            description = "Belirtilen ID'ye sahip kitap için kapak fotoğrafı yükler",
+            security = @SecurityRequirement(name = "Bearer Authentication")
+    )
+    @Parameter(
+            name = "file",
+            description = "Yüklenecek fotoğraf (Optional)",
+            content = @Content(mediaType = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    )
     @ApiResponse(responseCode = "201", description = "Tweet paylaşıldı")
-    public ResponseEntity<TweetResponse> shareTweet(
-            @Valid @RequestBody TweetRequest tweetRequest,
+
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TweetResponse> createTweet(
+            @RequestParam(value = "media", required = false) MultipartFile media,
+            @RequestParam("content") String content,
             @AuthenticationPrincipal UserDetails userDetails) {
-        TweetResponse response = tweetService.createTweet(tweetRequest, userDetails.getUsername());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        TweetRequest tweetRequest = new TweetRequest();
+        tweetRequest.setContent(content);
+
+        if (media != null && !media.isEmpty()) {
+            // AWS S3'e medya dosyasını yükle
+            String mediaUrl = s3Service.uploadFile(media);
+            tweetRequest.setMediaUrl(mediaUrl);
+            tweetRequest.setMediaType(determineMediaType(media.getContentType()));
+        }
+
+        TweetResponse tweet = tweetService.createTweet(tweetRequest, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(tweet);
     }
+
+    private MediaType determineMediaType(String contentType) {
+        if (contentType == null) return MediaType.NONE;
+
+        if (contentType.startsWith("image/")) {
+            if (contentType.equals("image/gif")) {
+                return MediaType.GIF;
+            }
+            return MediaType.IMAGE;
+        } else if (contentType.startsWith("video/")) {
+            return MediaType.VIDEO;
+        }
+
+        return MediaType.NONE;
+    }
+
     @PostMapping("/{tweetId}/like")
     @Operation(summary = "Tweet beğen/beğeniyi kaldır")
     public TweetResponse likeTweet(@PathVariable("tweetId")Long tweetId,
