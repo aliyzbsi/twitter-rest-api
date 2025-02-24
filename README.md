@@ -243,19 +243,11 @@ https://{bucket-name}.s3.{region}.amazonaws.com/{file-name}
 
 ### 9.1 Test Coverage
 
-- Unit tests
-- Integration tests
+
 - API tests
 
 
-### 9.2 Test Data
 
-```java
-@Test
-public void testCreateTweet() {
-    // Test scenarios
-}
-```
 
 ## 10. Deployment
 
