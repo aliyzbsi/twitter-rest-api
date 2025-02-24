@@ -7,6 +7,7 @@ import com.twitter.twitter_rest_api.entity.User;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,9 +19,9 @@ public interface TweetService {
     TweetResponse update(Long id, Tweet tweet, String userEmail);
     TweetResponse delete(Long id, String userEmail);
 
-    TweetResponse createTweet(@Valid TweetRequest tweetRequest, String username);
+    TweetResponse createTweet(String content, MultipartFile media, String username);
 
-    TweetResponse replyToTweet(@Valid ReplyTweetRequest replyTweetRequest, String username);
+    TweetResponse replyToTweet(Long tweetId, String content, MultipartFile media, String username);
 
     TweetResponse retweet(RetweetRequest retweetRequest, String username);
 

@@ -34,7 +34,7 @@ public class S3Service {
             "image/jpeg", "image/png", "image/gif","image/webp","image,jpg"
     );
 
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final long MAX_FILE_SIZE = 100 * 1024 * 1024; // 5MB
 
     public S3Service(AmazonS3 s3Client) {
         this.s3Client = s3Client;

@@ -1,6 +1,7 @@
 package com.twitter.twitter_rest_api.service;
 
 import com.twitter.twitter_rest_api.dto.*;
+import com.twitter.twitter_rest_api.entity.MediaType;
 import com.twitter.twitter_rest_api.entity.Tweet;
 import com.twitter.twitter_rest_api.entity.TweetType;
 import com.twitter.twitter_rest_api.entity.User;
@@ -20,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,7 +36,7 @@ public class TweetServiceImpl implements TweetService {
     private final UserRepository userRepository;
     private final TweetLikeRepository tweetLikeRepository;
     private final TweetMapper tweetMapper;
-
+    private final S3Service s3Service;
 
 
     @Override
@@ -109,49 +111,58 @@ public class TweetServiceImpl implements TweetService {
 
     @Override
     @Transactional
-    public TweetResponse createTweet(TweetRequest tweetRequest, String username) {
+    public TweetResponse createTweet(String content, MultipartFile media, String username) {
+        User user=userRepository.findByEmail(username)
+                .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
+        TweetRequest tweetRequest=new TweetRequest();
+        tweetRequest.setContent(content);
+        if(media!=null&&!media.isEmpty()){
+            String mediaUrl=s3Service.uploadFile(media);
+            tweetRequest.setMediaUrl(mediaUrl);
+            tweetRequest.setMediaType(determineMediaType(media.getContentType()));
+        }
+        Tweet newTweet=new Tweet();
+        newTweet.setContent(tweetRequest.getContent());
+        newTweet.setTweetType(TweetType.TWEET);
+        newTweet.setMediaUrl(tweetRequest.getMediaUrl());
+        newTweet.setMediaType(tweetRequest.getMediaType());
+        newTweet.setUser(user);
 
-          User user=userRepository.findByEmail(username)
-                  .orElseThrow(()->new ApiException("User not found",HttpStatus.NOT_FOUND));
-          Tweet newTweet=new Tweet();
-          newTweet.setContent(tweetRequest.getContent());
-          newTweet.setTweetType(TweetType.TWEET);
-          newTweet.setMediaUrl(tweetRequest.getMediaUrl());
-          newTweet.setMediaType(tweetRequest.getMediaType());
-          newTweet.setUser(user);
-          tweetRepository.save(newTweet);
-          user.incrementTweetsCount();
-          return tweetMapper.toTweetResponse(newTweet,user);
-
+        tweetRepository.save(newTweet);
+        user.incrementTweetsCount();
+        return tweetMapper.toTweetResponse(newTweet,user);
     }
-
-
 
     @Override
     @Transactional
-    public TweetResponse replyToTweet(ReplyTweetRequest replyTweetRequest, String username) {
+    public TweetResponse replyToTweet(Long tweetId, String content, MultipartFile media, String username) {
+        User user=userRepository.findByEmail(username)
+                .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
 
-            User user=userRepository.findByEmail(username)
-                    .orElseThrow(()->new ApiException("Kullanıcı bulunamadı! ",HttpStatus.NOT_FOUND));
+        ReplyTweetRequest replyTweetRequest=new ReplyTweetRequest();
+        replyTweetRequest.setContent(content);
+        replyTweetRequest.setParentTweetId(tweetId);
 
-            Tweet newReplyTweet=new Tweet();
-            newReplyTweet.setContent(replyTweetRequest.getContent());
-            newReplyTweet.setTweetType(TweetType.REPLY);
-            newReplyTweet.setMediaUrl(replyTweetRequest.getMediaUrl());
-            newReplyTweet.setMediaType(replyTweetRequest.getMediaType());
-            newReplyTweet.setUser(user);
+        if(media!=null&&!media.isEmpty()){
+            String mediaUrl=s3Service.uploadFile(media);
+            replyTweetRequest.setMediaUrl(mediaUrl);
+            replyTweetRequest.setMediaType(determineMediaType(media.getContentType()));
+        }
+        Tweet newReplyTweet = new Tweet();
+        newReplyTweet.setContent(replyTweetRequest.getContent());
+        newReplyTweet.setTweetType(TweetType.REPLY);
+        newReplyTweet.setMediaUrl(replyTweetRequest.getMediaUrl());
+        newReplyTweet.setMediaType(replyTweetRequest.getMediaType());
+        newReplyTweet.setUser(user);
 
-            if (replyTweetRequest.getParentTweetId()!=null){
-                Tweet parentTweet=tweetRepository.findById(replyTweetRequest.getParentTweetId())
-                        .orElseThrow(()->new ApiException("Yanıt verilen tweet bulunamadı", HttpStatus.NOT_FOUND));
-                newReplyTweet.setParentTweet(parentTweet);
-                parentTweet.setReplyCount(parentTweet.getReplyCount()+1);
-                tweetRepository.save(parentTweet);
-            }
-            tweetRepository.save(newReplyTweet);
-            user.incrementTweetsCount();
-            return tweetMapper.toTweetResponse(newReplyTweet,user);
-
+        Tweet parentTweet = tweetRepository.findById(tweetId)
+                .orElseThrow(() -> new ApiException("Yanıt verilen tweet bulunamadı", HttpStatus.NOT_FOUND));
+        newReplyTweet.setParentTweet(parentTweet);
+        parentTweet.incrementReplyCount();
+        tweetRepository.save(parentTweet);
+        tweetRepository.save(newReplyTweet);
+        user.incrementTweetsCount();
+        return tweetMapper.toTweetResponse(newReplyTweet,user);
     }
 
     @Override
@@ -285,5 +296,18 @@ public class TweetServiceImpl implements TweetService {
         return tweetMapper.toTweetResponse(existingTweet,currentUser);
     }
 
+    private MediaType determineMediaType(String contentType) {
+        if (contentType == null) return MediaType.NONE;
 
+        if (contentType.startsWith("image/")) {
+            if (contentType.equals("image/gif")) {
+                return MediaType.GIF;
+            }
+            return MediaType.IMAGE;
+        } else if (contentType.startsWith("video/")) {
+            return MediaType.VIDEO;
+        }
+
+        return MediaType.NONE;
+    }
 }

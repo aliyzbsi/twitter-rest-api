@@ -88,12 +88,12 @@ public class TweetController {
         return ResponseEntity.ok(tweetService.findById(id, userDetails.getUsername()));
     }
 
-    
+
 
 
     @Operation(
-            summary = "Kitap kapak fotoğrafı yükleme",
-            description = "Belirtilen ID'ye sahip kitap için kapak fotoğrafı yükler",
+            summary = "Yeni Tweet ",
+            description = "yeni tweet atar",
             security = @SecurityRequirement(name = "Bearer Authentication")
     )
     @Parameter(
@@ -109,34 +109,28 @@ public class TweetController {
             @RequestParam("content") String content,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        TweetRequest tweetRequest = new TweetRequest();
-        tweetRequest.setContent(content);
-
-        if (media != null && !media.isEmpty()) {
-            // AWS S3'e medya dosyasını yükle
-            String mediaUrl = s3Service.uploadFile(media);
-            tweetRequest.setMediaUrl(mediaUrl);
-            tweetRequest.setMediaType(determineMediaType(media.getContentType()));
-        }
-
-        TweetResponse tweet = tweetService.createTweet(tweetRequest, userDetails.getUsername());
+        TweetResponse tweet = tweetService.createTweet(content, media, userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED).body(tweet);
     }
 
-    private MediaType determineMediaType(String contentType) {
-        if (contentType == null) return MediaType.NONE;
+    @PostMapping(value = "/{tweetId}/reply",consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Parameter(
+            name = "file",
+            description = "Yüklenecek fotoğraf (Optional)",
+            content = @Content(mediaType = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    )
+    @Operation(summary = "Tweet'e yanıt ver",
+            security = @SecurityRequirement(name = "Bearer Authentication"))
+    public ResponseEntity<TweetResponse> replyToTweet(
+            @PathVariable("tweetId") long tweetId,
+            @RequestParam(value = "media", required = false) MultipartFile media,
+            @RequestParam("content") String content,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        if (contentType.startsWith("image/")) {
-            if (contentType.equals("image/gif")) {
-                return MediaType.GIF;
-            }
-            return MediaType.IMAGE;
-        } else if (contentType.startsWith("video/")) {
-            return MediaType.VIDEO;
-        }
-
-        return MediaType.NONE;
+        TweetResponse tweet = tweetService.replyToTweet(tweetId, content, media, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(tweet);
     }
+
 
     @PostMapping("/{tweetId}/like")
     @Operation(summary = "Tweet beğen/beğeniyi kaldır")
@@ -160,16 +154,7 @@ public class TweetController {
     }
 
 
-    @PostMapping("/{tweetId}/reply")
-    @Operation(summary = "Tweet'e yanıt ver")
-    public TweetResponse replyToTweet(
-            @PathVariable("tweetId") long tweetId,
-            @Valid @RequestBody ReplyTweetRequest replyTweetRequest,
-            @AuthenticationPrincipal UserDetails userDetails
-            ){
-        replyTweetRequest.setParentTweetId(tweetId);
-        return tweetService.replyToTweet(replyTweetRequest,userDetails.getUsername());
-    }
+
 
     @PostMapping("/{tweetId}/retweet")
     @Operation(summary = "Tweet'i retweet et")
