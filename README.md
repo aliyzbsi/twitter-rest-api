@@ -16,20 +16,8 @@
 
 ### 1.2 Project Architecture
 
-```mermaid
-Diagram.download-icon {
-            cursor: pointer;
-            transform-origin: center;
-        }
-        .download-icon .arrow-part {
-            transition: transform 0.35s cubic-bezier(0.35, 0.2, 0.14, 0.95);
-             transform-origin: center;
-        }
-        button:has(.download-icon):hover .download-icon .arrow-part, button:has(.download-icon):focus-visible .download-icon .arrow-part {
-          transform: translateY(-1.5px);
-        }
-        #mermaid-diagram-ri95{font-family:var(--font-geist-sans);font-size:12px;fill:#000000;}#mermaid-diagram-ri95 .error-icon{fill:#552222;}#mermaid-diagram-ri95 .error-text{fill:#552222;stroke:#552222;}#mermaid-diagram-ri95 .edge-thickness-normal{stroke-width:1px;}#mermaid-diagram-ri95 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-diagram-ri95 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-diagram-ri95 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-diagram-ri95 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-diagram-ri95 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-diagram-ri95 .marker{fill:#666;stroke:#666;}#mermaid-diagram-ri95 .marker.cross{stroke:#666;}#mermaid-diagram-ri95 svg{font-family:var(--font-geist-sans);font-size:12px;}#mermaid-diagram-ri95 p{margin:0;}#mermaid-diagram-ri95 .label{font-family:var(--font-geist-sans);color:#000000;}#mermaid-diagram-ri95 .cluster-label text{fill:#333;}#mermaid-diagram-ri95 .cluster-label span{color:#333;}#mermaid-diagram-ri95 .cluster-label span p{background-color:transparent;}#mermaid-diagram-ri95 .label text,#mermaid-diagram-ri95 span{fill:#000000;color:#000000;}#mermaid-diagram-ri95 .node rect,#mermaid-diagram-ri95 .node circle,#mermaid-diagram-ri95 .node ellipse,#mermaid-diagram-ri95 .node polygon,#mermaid-diagram-ri95 .node path{fill:#eee;stroke:#999;stroke-width:1px;}#mermaid-diagram-ri95 .rough-node .label text,#mermaid-diagram-ri95 .node .label text{text-anchor:middle;}#mermaid-diagram-ri95 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-diagram-ri95 .node .label{text-align:center;}#mermaid-diagram-ri95 .node.clickable{cursor:pointer;}#mermaid-diagram-ri95 .arrowheadPath{fill:#333333;}#mermaid-diagram-ri95 .edgePath .path{stroke:#666;stroke-width:2.0px;}#mermaid-diagram-ri95 .flowchart-link{stroke:#666;fill:none;}#mermaid-diagram-ri95 .edgeLabel{background-color:white;text-align:center;}#mermaid-diagram-ri95 .edgeLabel p{background-color:white;}#mermaid-diagram-ri95 .edgeLabel rect{opacity:0.5;background-color:white;fill:white;}#mermaid-diagram-ri95 .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-diagram-ri95 .cluster rect{fill:hsl(0, 0%, 98.9215686275%);stroke:#707070;stroke-width:1px;}#mermaid-diagram-ri95 .cluster text{fill:#333;}#mermaid-diagram-ri95 .cluster span{color:#333;}#mermaid-diagram-ri95 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:var(--font-geist-sans);font-size:12px;background:hsl(-160, 0%, 93.3333333333%);border:1px solid #707070;border-radius:2px;pointer-events:none;z-index:100;}#mermaid-diagram-ri95 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#000000;}#mermaid-diagram-ri95 .flowchart-link{stroke:hsl(var(--gray-400));stroke-width:1px;}#mermaid-diagram-ri95 .marker,#mermaid-diagram-ri95 marker,#mermaid-diagram-ri95 marker *{fill:hsl(var(--gray-400))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-ri95 .label,#mermaid-diagram-ri95 text,#mermaid-diagram-ri95 text>tspan{fill:hsl(var(--black))!important;color:hsl(var(--black))!important;}#mermaid-diagram-ri95 .background,#mermaid-diagram-ri95 rect.relationshipLabelBox{fill:hsl(var(--white))!important;}#mermaid-diagram-ri95 .entityBox,#mermaid-diagram-ri95 .attributeBoxEven{fill:hsl(var(--gray-150))!important;}#mermaid-diagram-ri95 .attributeBoxOdd{fill:hsl(var(--white))!important;}#mermaid-diagram-ri95 .label-container,#mermaid-diagram-ri95 rect.actor{fill:hsl(var(--white))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-ri95 line{stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-ri95 :root{--mermaid-font-family:var(--font-geist-sans);}ClientControllersServicesRepositoriesPostgreSQLAWS S3Security LayerException Handler
-```
+<img width="693" alt="diagram" src="https://github.com/user-attachments/assets/967a2e8e-2311-435d-a8f6-81eb694b7741" />
+
 
 ## 2. Setup and Configuration
 
@@ -54,21 +42,9 @@ app.jwt.refresh-token.expiration=604800000
 ```
 
 ### 2.2 Database Schema
+<img width="765" alt="diagram2" src="https://github.com/user-attachments/assets/411a7aa5-3c7c-49e6-a023-6310bc4b6b3e" />
 
-```mermaid
-Diagram.download-icon {
-            cursor: pointer;
-            transform-origin: center;
-        }
-        .download-icon .arrow-part {
-            transition: transform 0.35s cubic-bezier(0.35, 0.2, 0.14, 0.95);
-             transform-origin: center;
-        }
-        button:has(.download-icon):hover .download-icon .arrow-part, button:has(.download-icon):focus-visible .download-icon .arrow-part {
-          transform: translateY(-1.5px);
-        }
-        #mermaid-diagram-ri9j{font-family:var(--font-geist-sans);font-size:12px;fill:#000000;}#mermaid-diagram-ri9j .error-icon{fill:#552222;}#mermaid-diagram-ri9j .error-text{fill:#552222;stroke:#552222;}#mermaid-diagram-ri9j .edge-thickness-normal{stroke-width:1px;}#mermaid-diagram-ri9j .edge-thickness-thick{stroke-width:3.5px;}#mermaid-diagram-ri9j .edge-pattern-solid{stroke-dasharray:0;}#mermaid-diagram-ri9j .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-diagram-ri9j .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-diagram-ri9j .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-diagram-ri9j .marker{fill:#666;stroke:#666;}#mermaid-diagram-ri9j .marker.cross{stroke:#666;}#mermaid-diagram-ri9j svg{font-family:var(--font-geist-sans);font-size:12px;}#mermaid-diagram-ri9j p{margin:0;}#mermaid-diagram-ri9j .entityBox{fill:#eee;stroke:#999;}#mermaid-diagram-ri9j .attributeBoxOdd{fill:#ffffff;stroke:#999;}#mermaid-diagram-ri9j .attributeBoxEven{fill:#f2f2f2;stroke:#999;}#mermaid-diagram-ri9j .relationshipLabelBox{fill:hsl(-160, 0%, 93.3333333333%);opacity:0.7;background-color:hsl(-160, 0%, 93.3333333333%);}#mermaid-diagram-ri9j .relationshipLabelBox rect{opacity:0.5;}#mermaid-diagram-ri9j .relationshipLine{stroke:#666;}#mermaid-diagram-ri9j .entityTitleText{text-anchor:middle;font-size:18px;fill:#000000;}#mermaid-diagram-ri9j #MD_PARENT_START{fill:#f5f5f5!important;stroke:#666!important;stroke-width:1;}#mermaid-diagram-ri9j #MD_PARENT_END{fill:#f5f5f5!important;stroke:#666!important;stroke-width:1;}#mermaid-diagram-ri9j .flowchart-link{stroke:hsl(var(--gray-400));stroke-width:1px;}#mermaid-diagram-ri9j .marker,#mermaid-diagram-ri9j marker,#mermaid-diagram-ri9j marker *{fill:hsl(var(--gray-400))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-ri9j .label,#mermaid-diagram-ri9j text,#mermaid-diagram-ri9j text>tspan{fill:hsl(var(--black))!important;color:hsl(var(--black))!important;}#mermaid-diagram-ri9j .background,#mermaid-diagram-ri9j rect.relationshipLabelBox{fill:hsl(var(--white))!important;}#mermaid-diagram-ri9j .entityBox,#mermaid-diagram-ri9j .attributeBoxEven{fill:hsl(var(--gray-150))!important;}#mermaid-diagram-ri9j .attributeBoxOdd{fill:hsl(var(--white))!important;}#mermaid-diagram-ri9j .label-container,#mermaid-diagram-ri9j rect.actor{fill:hsl(var(--white))!important;stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-ri9j line{stroke:hsl(var(--gray-400))!important;}#mermaid-diagram-ri9j :root{--mermaid-font-family:var(--font-geist-sans);}UserTweetFollowTweetLikecreatesfollowslikeshasreferences
-```
+
 
 ## 3. API Endpoints
 
