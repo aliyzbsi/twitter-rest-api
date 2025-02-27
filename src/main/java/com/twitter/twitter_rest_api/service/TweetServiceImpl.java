@@ -46,7 +46,7 @@ public class TweetServiceImpl implements TweetService {
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı!", HttpStatus.NOT_FOUND));
 
-        return tweetRepository.findAllWithDetails(pageable)
+        return tweetRepository.findAllNonDeletedTweets(pageable)
                 .map(tweet -> tweetMapper.toTweetResponse(tweet,currentUser));
     }
     @Override
@@ -60,7 +60,7 @@ public class TweetServiceImpl implements TweetService {
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı!", HttpStatus.NOT_FOUND));
 
-        Page<Tweet> tweets = tweetRepository.findByUserId(userId, pageable);
+        Page<Tweet> tweets = tweetRepository.findNonDeletedTweetsByUserId(userId, pageable);
         return tweets.map(tweet -> tweetMapper.toTweetResponse(tweet, currentUser));
     }
 
@@ -83,14 +83,13 @@ public class TweetServiceImpl implements TweetService {
 
     @Override
     @Cacheable(value = "tweets",key = "#id")
-    public TweetResponse findById(Long id,String userEmail) {
-       User currentUser=userRepository.findByEmail(userEmail)
-               .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı",HttpStatus.NOT_FOUND));
+    public TweetDetailResponse findById(Long id, String userEmail) {
+        User currentUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı", HttpStatus.NOT_FOUND));
 
-       return tweetRepository.findByIdWithDetails(id)
-               .map(tweet -> tweetMapper.toTweetResponse(tweet,currentUser))
-               .orElseThrow(() -> new ApiException("Tweet bulunamadı",HttpStatus.NOT_FOUND));
-
+        return tweetRepository.findByIdWithDetails(id)
+                .map(tweet -> tweetMapper.toTweetDetailResponse(tweet, currentUser))
+                .orElseThrow(() -> new ApiException("Tweet bulunamadı", HttpStatus.NOT_FOUND));
     }
 
 
@@ -111,7 +110,7 @@ public class TweetServiceImpl implements TweetService {
 
     @Override
     @Transactional
-    public TweetResponse createTweet(String content, MultipartFile media, String username) {
+    public TweetDetailResponse createTweet(String content, MultipartFile media, String username) {
         User user=userRepository.findByEmail(username)
                 .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
         TweetRequest tweetRequest=new TweetRequest();
@@ -130,44 +129,54 @@ public class TweetServiceImpl implements TweetService {
 
         tweetRepository.save(newTweet);
         user.incrementTweetsCount();
-        return tweetMapper.toTweetResponse(newTweet,user);
+        return tweetMapper.toTweetDetailResponse(newTweet,user);
     }
 
     @Override
     @Transactional
-    public TweetResponse replyToTweet(Long tweetId, String content, MultipartFile media, String username) {
-        User user=userRepository.findByEmail(username)
-                .orElseThrow(() -> new ApiException("User not found", HttpStatus.NOT_FOUND));
+    public TweetDetailResponse replyToTweet(Long tweetId, String content, MultipartFile media, String username) {
+        // 1. Kullanıcı kontrolü
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı", HttpStatus.NOT_FOUND));
 
-        ReplyTweetRequest replyTweetRequest=new ReplyTweetRequest();
-        replyTweetRequest.setContent(content);
-        replyTweetRequest.setParentTweetId(tweetId);
+        // 2. Parent tweet kontrolü
+        Tweet parentTweet = tweetRepository.findById(tweetId)
+                .orElseThrow(() -> new ApiException("Yanıt verilen tweet bulunamadı", HttpStatus.BAD_REQUEST));
 
-        if(media!=null&&!media.isEmpty()){
-            String mediaUrl=s3Service.uploadFile(media);
-            replyTweetRequest.setMediaUrl(mediaUrl);
-            replyTweetRequest.setMediaType(determineMediaType(media.getContentType()));
+        // 3. Silinen tweet kontrolü
+        if (parentTweet.isDeleted()) {
+            throw new ApiException("Silinen tweet'e yanıt verilemez", HttpStatus.BAD_REQUEST);
         }
+
+        // 4. Yeni reply tweet oluştur
         Tweet newReplyTweet = new Tweet();
-        newReplyTweet.setContent(replyTweetRequest.getContent());
+        newReplyTweet.setContent(content);
         newReplyTweet.setTweetType(TweetType.REPLY);
-        newReplyTweet.setMediaUrl(replyTweetRequest.getMediaUrl());
-        newReplyTweet.setMediaType(replyTweetRequest.getMediaType());
         newReplyTweet.setUser(user);
 
-        Tweet parentTweet = tweetRepository.findById(tweetId)
-                .orElseThrow(() -> new ApiException("Yanıt verilen tweet bulunamadı", HttpStatus.NOT_FOUND));
-        newReplyTweet.setParentTweet(parentTweet);
-        parentTweet.incrementReplyCount();
-        tweetRepository.save(parentTweet);
+        // 5. Media işleme
+        if (media != null && !media.isEmpty()) {
+            String mediaUrl = s3Service.uploadFile(media);
+            newReplyTweet.setMediaUrl(mediaUrl);
+            newReplyTweet.setMediaType(determineMediaType(media.getContentType()));
+        }
+
+        // 6. Parent tweet'i belirle ve reply count'u güncelle
+        Tweet targetParent = determineParentTweet(parentTweet);
+        newReplyTweet.setParentTweet(targetParent);
+        targetParent.incrementReplyCount();
+
+        // 7. Değişiklikleri kaydet
+        tweetRepository.save(targetParent);
         tweetRepository.save(newReplyTweet);
         user.incrementTweetsCount();
-        return tweetMapper.toTweetResponse(newReplyTweet,user);
+
+        return tweetMapper.toTweetDetailResponse(newReplyTweet, user);
     }
 
     @Override
     @Transactional
-    public TweetResponse retweet(RetweetRequest retweetRequest, String username) {
+    public TweetDetailResponse retweet(RetweetRequest retweetRequest, String username) {
      try {
          User user=userRepository.findByEmail(username)
                  .orElseThrow(()->new ApiException("Kullanıcı bulunamadı! ",HttpStatus.NOT_FOUND));
@@ -179,7 +188,9 @@ public class TweetServiceImpl implements TweetService {
                  :targetTweet;
 
         Optional<Tweet> existingRetweet=tweetRepository.findByUserAndParentTweetAndTweetType(user,originalTweet,TweetType.RETWEET);
-
+         if (targetTweet.isDeleted()) {
+             throw new ApiException("Silinen tweet'e yenilden gönderilemez", HttpStatus.BAD_REQUEST);
+         }
          if (existingRetweet.isPresent()){
         // Eğer kullanıcı daha önce retweet yapmışsa, retweet'i geri al
              Tweet retweet=existingRetweet.get();
@@ -188,7 +199,7 @@ public class TweetServiceImpl implements TweetService {
 
              tweetRepository.delete(retweet);
              tweetRepository.save(originalTweet);
-             TweetResponse response= tweetMapper.toTweetResponse(originalTweet,user);
+             TweetDetailResponse response= tweetMapper.toTweetDetailResponse(originalTweet,user);
              response.setRetweetId(null);
              response.setRetweeted(false);
 
@@ -211,7 +222,7 @@ public class TweetServiceImpl implements TweetService {
              tweetRepository.save(retweet);
              tweetRepository.save(originalTweet);
              userRepository.save(user);
-             TweetResponse response= tweetMapper.toTweetResponse(retweet,user);
+             TweetDetailResponse response= tweetMapper.toTweetDetailResponse(retweet,user);
              response.setRetweeted(true);
              response.setRetweetId(retweet.getId());
 
@@ -219,7 +230,7 @@ public class TweetServiceImpl implements TweetService {
          }
 
      }catch (Exception e){
-              e.printStackTrace();
+
             throw new ApiException("İşlem sırasında bir hata oluştu: "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -227,35 +238,53 @@ public class TweetServiceImpl implements TweetService {
 
     @Override
     @Transactional
-    public TweetResponse quoteTweet(QuoteTweetRequest quoteTweetRequest, String username) {
-       try {
-           User user=userRepository.findByEmail(username)
-                   .orElseThrow(()->new ApiException("Kullanıcı bulunamadı! ",HttpStatus.NOT_FOUND));
-           Tweet parentTweet=tweetRepository.findById(quoteTweetRequest.getParentTweetId())
-                   .orElseThrow(()->new ApiException("Alıntılanmak istenen tweet bulunamadı!", HttpStatus.NOT_FOUND));
-           Tweet quoteTweet=new Tweet();
-           quoteTweet.setContent(quoteTweetRequest.getContent());
-           quoteTweet.setTweetType(TweetType.QUOTE);
-           quoteTweet.setUser(user);
-           quoteTweet.setMediaUrl(quoteTweetRequest.getMediaUrl());
-           quoteTweet.setMediaType(quoteTweetRequest.getMediaType());
-           quoteTweet.setParentTweet(parentTweet);
+    public TweetDetailResponse quoteTweet(Long tweetId, String content, MultipartFile media, String username) {
+        try {
+            User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı!", HttpStatus.NOT_FOUND));
 
-           tweetRepository.save(quoteTweet);
-           user.incrementTweetsCount();
-           parentTweet.setRetweetCount(parentTweet.getRetweetCount()+1);
-           tweetRepository.save(parentTweet);
-           return tweetMapper.toTweetResponse(quoteTweet,user);
-       }catch (Exception e){
-           throw new ApiException("İşlem sırasında bir hata oluştu: "+e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR);
-       }
+            Tweet parentTweet = tweetRepository.findById(tweetId)
+                    .orElseThrow(() -> new ApiException("Alıntılanmak istenen tweet bulunamadı!", HttpStatus.NOT_FOUND));
 
+            if (parentTweet.isDeleted()) {
+                throw new ApiException("Silinen tweet alıntılanamaz", HttpStatus.BAD_REQUEST);
+            }
+
+            // Retweet ise orijinal tweet'i al
+            Tweet originalTweet = parentTweet.getTweetType() == TweetType.RETWEET
+                    ? parentTweet.getParentTweet()
+                    : parentTweet;
+
+            Tweet quoteTweet = new Tweet();
+            quoteTweet.setContent(content);
+            quoteTweet.setTweetType(TweetType.QUOTE);
+            quoteTweet.setUser(user);
+            quoteTweet.setParentTweet(originalTweet);
+
+            // Media işleme
+            if (media != null && !media.isEmpty()) {
+                String mediaUrl = s3Service.uploadFile(media);
+                quoteTweet.setMediaUrl(mediaUrl);
+                quoteTweet.setMediaType(determineMediaType(media.getContentType()));
+            }
+
+            tweetRepository.save(quoteTweet);
+            user.incrementTweetsCount();
+
+            // Quote count'u artır
+            originalTweet.setRetweetCount(originalTweet.getRetweetCount() + 1);
+            tweetRepository.save(originalTweet);
+
+            return tweetMapper.toTweetDetailResponse(quoteTweet, user);
+        } catch (Exception e) {
+            throw new ApiException("İşlem sırasında bir hata oluştu: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 
     @Override
     @Transactional
-    public TweetResponse update(Long id, Tweet tweet, String userEmail) {
+    public TweetDetailResponse update(Long id, Tweet tweet, String userEmail) {
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı", HttpStatus.NOT_FOUND));
         Tweet existingTweet = tweetRepository.findByIdWithDetails(id)
@@ -273,27 +302,55 @@ public class TweetServiceImpl implements TweetService {
         }
         existingTweet.setUpdatedAt(LocalDateTime.now());
         Tweet savedTweet = tweetRepository.save(existingTweet);
-        return tweetMapper.toTweetResponse(savedTweet, currentUser);
+        return tweetMapper.toTweetDetailResponse(savedTweet, currentUser);
     }
 
     @Override
     @Transactional
-    public TweetResponse delete(Long id, String userEmail) {
+    public TweetDetailResponse delete(Long id, String userEmail) {
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı", HttpStatus.NOT_FOUND));
+
         Tweet existingTweet = tweetRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ApiException("Tweet bulunamadı", HttpStatus.NOT_FOUND));
+
         if(!existingTweet.getUser().getEmail().equals(userEmail)){
-            throw new ApiException("Sadece kendi twitlerini silebilirsin!",HttpStatus.FORBIDDEN);
+            throw new ApiException("Sadece kendi twitlerini silebilirsin!", HttpStatus.FORBIDDEN);
         }
-        if(existingTweet.getParentTweet()!=null){
-            Tweet parentTweet=existingTweet.getParentTweet();
-            parentTweet.setReplyCount(parentTweet.getReplyCount()-1);
+
+        // Parent tweet varsa reply count'u azalt
+        if(existingTweet.getParentTweet() != null&&existingTweet.getTweetType()==TweetType.REPLY){
+            Tweet parentTweet = existingTweet.getParentTweet();
+            parentTweet.decrementReplyCount();
+            tweetRepository.save(parentTweet);
         }
-        System.out.println("Burası çalıştı!");
+
+        // Retweet'leri bul ve sil
+        List<Tweet> retweets = tweetRepository.findByParentTweetAndTweetType(existingTweet, TweetType.RETWEET);
+        for (Tweet retweet : retweets) {
+            retweet.getUser().decrementTweetsCount();
+            tweetRepository.delete(retweet);
+        }
+
+        // Orijinal içeriği sakla
+        existingTweet.setOriginalContent(existingTweet.getContent());
+        existingTweet.setOriginalMediaUrl(existingTweet.getMediaUrl());
+        existingTweet.setOriginalMediaType(existingTweet.getMediaType());
+
+        // Tweet'i soft delete yap
+
+        existingTweet.setDeleted(true);
+        existingTweet.setDeletedAt(LocalDateTime.now());
+        existingTweet.setContent("Bu tweet silinmiş");
+        existingTweet.setMediaUrl(null);
+        existingTweet.setMediaType(MediaType.NONE);
+
+        // Kullanıcının tweet sayısını azalt
         existingTweet.getUser().decrementTweetsCount();
-        tweetRepository.delete(existingTweet);
-        return tweetMapper.toTweetResponse(existingTweet,currentUser);
+
+        tweetRepository.save(existingTweet);
+
+        return tweetMapper.toTweetDetailResponse(existingTweet, currentUser);
     }
 
     private MediaType determineMediaType(String contentType) {
@@ -309,5 +366,13 @@ public class TweetServiceImpl implements TweetService {
         }
 
         return MediaType.NONE;
+    }
+    private Tweet determineParentTweet(Tweet parentTweet) {
+        if (parentTweet.getTweetType() == TweetType.RETWEET) {
+            // Retweet'e yapılan yanıtlar orjinal tweet'e bağlanır
+            return parentTweet.getParentTweet();
+        }
+        // Quote ve normal tweet'lere yapılan yanıtlar direkt tweet'e bağlanır
+        return parentTweet;
     }
 }

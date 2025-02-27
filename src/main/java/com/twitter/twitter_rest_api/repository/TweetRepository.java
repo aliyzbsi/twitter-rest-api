@@ -16,6 +16,8 @@ import java.util.Set;
 
 public interface TweetRepository extends JpaRepository<Tweet,Long> {
 
+
+
     // Tweet içeriği ve kullanıcı adına göre arama
     @Query("SELECT DISTINCT t FROM Tweet t LEFT JOIN FETCH t.user u WHERE " +
             "LOWER(t.content) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -27,7 +29,7 @@ public interface TweetRepository extends JpaRepository<Tweet,Long> {
             "t.content LIKE CONCAT('%#', :hashtag, '%')")
     Page<Tweet> findByHashtag(@Param("hashtag") String hashtag, Pageable pageable);
 
-    @Query("SELECT t FROM Tweet t WHERE t.user.id = :userId ORDER BY t.createdAt DESC")
+    @Query("SELECT t FROM Tweet t WHERE t.deleted=false AND t.user.id = :userId ORDER BY t.createdAt DESC")
     Page<Tweet> findByUserId(@Param("userId") Long userId, Pageable pageable);
 
     @Query("SELECT t FROM Tweet t " +
@@ -76,6 +78,22 @@ public interface TweetRepository extends JpaRepository<Tweet,Long> {
             "ORDER BY t.createdAt DESC")
     Page<Tweet> findAllWithDetails(Pageable pageable);
 
+    @Query("SELECT DISTINCT t FROM Tweet t " +
+            "LEFT JOIN FETCH t.likes " +
+            "LEFT JOIN FETCH t.user " +
+            "LEFT JOIN FETCH t.parentTweet " +
+            "WHERE t.deleted = false " +
+            "ORDER BY t.createdAt DESC")
+    Page<Tweet> findAllNonDeletedTweets(Pageable pageable);
+
+    @Query("SELECT DISTINCT t FROM Tweet t " +
+            "LEFT JOIN FETCH t.likes " +
+            "LEFT JOIN FETCH t.user " +
+            "LEFT JOIN FETCH t.parentTweet " +
+            "WHERE t.deleted = false AND t.user.id = :userId " +
+            "ORDER BY t.createdAt DESC")
+    Page<Tweet> findNonDeletedTweetsByUserId(@Param("userId") Long userId, Pageable pageable);
+
     // Tweete verilen yanıtları bulan query
     @Query("SELECT t FROM Tweet t " +
             "LEFT JOIN FETCH t.user " +
@@ -87,4 +105,6 @@ public interface TweetRepository extends JpaRepository<Tweet,Long> {
             @Param("tweetType") TweetType tweetType,
             Pageable pageable
     );
+
+    List<Tweet> findByParentTweetAndTweetType(Tweet existingTweet, TweetType tweetType);
 }

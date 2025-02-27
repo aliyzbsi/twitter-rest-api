@@ -1,7 +1,6 @@
 package com.twitter.twitter_rest_api.controller;
 
 import com.twitter.twitter_rest_api.dto.*;
-import com.twitter.twitter_rest_api.entity.MediaType;
 import com.twitter.twitter_rest_api.entity.Tweet;
 import com.twitter.twitter_rest_api.service.LikeService;
 import com.twitter.twitter_rest_api.service.S3Service;
@@ -19,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -166,16 +166,24 @@ public class TweetController {
 
     }
 
-    @PostMapping("/{tweetId}/quote")
+    @PostMapping(value = "/{tweetId}/quote", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Parameter(
+            name = "media",
+            description = "Yüklenecek medya dosyası (Opsiyonel)",
+            content = @Content(mediaType = MediaType.MULTIPART_FORM_DATA_VALUE)
+    )
     @Operation(summary = "Tweet'i alıntıla")
-    public TweetResponse quoteTweet(
+    public ResponseEntity<TweetDetailResponse> quoteTweet(
             @PathVariable("tweetId") Long tweetId,
-            @Valid @RequestBody QuoteTweetRequest quoteTweetRequest,
+            @RequestParam("content") String content,
+            @RequestParam(value = "media", required = false) MultipartFile media,
             @AuthenticationPrincipal UserDetails userDetails
-            ){
-        quoteTweetRequest.setParentTweetId(tweetId);
-        return tweetService.quoteTweet(quoteTweetRequest,userDetails.getUsername());
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(tweetService.quoteTweet(tweetId, content, media, userDetails.getUsername()));
     }
+
+
 
     @PutMapping("/{id}")
     @SecurityRequirement(name = "basicAuth")
@@ -193,7 +201,9 @@ public class TweetController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public TweetResponse deleteTweet(
             @PathVariable("id") Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails
+
+            ) {
         return tweetService.delete(id, userDetails.getUsername());
     }
 }

@@ -71,26 +71,43 @@ public class Tweet {
     @JsonIgnore
     private Tweet parentTweet;
 
-    @OneToMany(mappedBy = "tweet",cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "tweet",cascade = {CascadeType.DETACH,CascadeType.MERGE,CascadeType.PERSIST,CascadeType.REFRESH})
     @JsonIgnore
     private Set<TweetLike> likes=new HashSet<>();
 
     @ManyToMany
-    @JoinTable(name = "retweets",schema = "twitterapi",
-    joinColumns = @JoinColumn(name = "tweet_id"),
-    inverseJoinColumns = @JoinColumn(name = "user_id"))
+    @JoinTable(name = "retweets", schema = "twitterapi",
+            joinColumns = @JoinColumn(name = "tweet_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
     @JsonIgnore
-    private Set<User> retweetedBy=new HashSet<>();
+    private Set<User> retweetedBy = new HashSet<>();
 
     @OneToMany(mappedBy = "parentTweet")
     @JsonIgnore
     private Set<Tweet> replies=new HashSet<>();
 
+    @Column(name = "is_deleted")
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    // Silinen içeriği saklamak için
+    @Column(name = "original_content", length = 280)
+    private String originalContent;
+
+    @Column(name = "original_media_url")
+    private String originalMediaUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "original_media_type")
+    private MediaType originalMediaType;
+
     @Scheduled(fixedRate = 300000) // 5 dakikada bir
     public void updateCounts() {
         this.likeCount = likes.size();
         this.retweetCount=retweetedBy.size();
-        this.replyCount=replyCount;
+
     }
 
     public void addRetweet(User user){

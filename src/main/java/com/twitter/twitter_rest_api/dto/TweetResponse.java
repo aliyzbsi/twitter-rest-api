@@ -1,5 +1,6 @@
 package com.twitter.twitter_rest_api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.twitter.twitter_rest_api.entity.MediaType;
 import com.twitter.twitter_rest_api.entity.TweetType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -58,4 +59,27 @@ public class TweetResponse {
     private Long parentTweetID;
     private Long parentTweetUserId;
     private LocalDateTime retweetedAt;
+
+    @Schema(description = "Tweet'in silinip silinmediği")
+    private boolean deleted;
+
+    @Schema(description = "Tweet'in silinme tarihi")
+    private LocalDateTime deletedAt;
+
+    @Schema(description = "Parent tweet'in silinip silinmediği")
+    private boolean parentTweetDeleted;
+
+    @Schema(description = "Orijinal içerik (admin/moderatör erişimi için)")
+    @JsonIgnore // Normal kullanıcılara gösterilmeyecek
+    private String originalContent;
+
+    @Schema(description = "Orijinal medya URL'si (admin/moderatör erişimi için)")
+    @JsonIgnore
+    private String originalMediaUrl;
+
+    @Schema(description = "Orijinal medya tipi (admin/moderatör erişimi için)")
+    @JsonIgnore
+    private MediaType originalMediaType;
+
+
 }

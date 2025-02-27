@@ -14,19 +14,13 @@ import java.util.Optional;
 
 public interface TweetService {
     Page<TweetResponse> findAll(Pageable pageable, String userEmail);
-    TweetResponse findById(Long id,String userEmail);
-
-    TweetResponse update(Long id, Tweet tweet, String userEmail);
-    TweetResponse delete(Long id, String userEmail);
-
-    TweetResponse createTweet(String content, MultipartFile media, String username);
-
-    TweetResponse replyToTweet(Long tweetId, String content, MultipartFile media, String username);
-
-    TweetResponse retweet(RetweetRequest retweetRequest, String username);
-
-    TweetResponse quoteTweet(@Valid QuoteTweetRequest quoteTweetRequest, String username);
-
+    TweetDetailResponse findById(Long id, String userEmail);
+    TweetDetailResponse update(Long id, Tweet tweet, String userEmail);
+    TweetDetailResponse delete(Long id, String userEmail);
+    TweetDetailResponse createTweet(String content, MultipartFile media, String username);
+    TweetDetailResponse replyToTweet(Long tweetId, String content, MultipartFile media, String username);
+    TweetDetailResponse retweet(RetweetRequest retweetRequest, String username);
+    TweetDetailResponse quoteTweet(Long tweetId,String content, MultipartFile media, String username);
     Page<TweetResponse> findByUserId(Long userID,Pageable pageable);
 
     Page<TweetResponse> findRepliesByTweetId(Long tweetId, Pageable pageable, String username);
