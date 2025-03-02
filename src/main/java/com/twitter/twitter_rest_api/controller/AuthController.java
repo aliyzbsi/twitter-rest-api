@@ -80,7 +80,8 @@ public class AuthController {
                 authResponse.user().followingCount(),
                 authResponse.user().tweetsCount(),
                 authResponse.user().verified(),
-                authResponse.user().privateAccount()
+                authResponse.user().privateAccount(),
+                authResponse.user().createdAt()
         );
 
         return ResponseEntity.ok()
@@ -123,7 +124,8 @@ public class AuthController {
                 authResponse.user().followingCount(),
                 authResponse.user().tweetsCount(),
                 authResponse.user().verified(),
-                authResponse.user().privateAccount()
+                authResponse.user().privateAccount(),
+                authResponse.user().createdAt()
         );
 
         return ResponseEntity.ok()
@@ -185,7 +187,8 @@ public class AuthController {
                 user.getFollowingCount(),
                 user.getTweetsCount(),
                 user.getVerified(),
-                user.getPrivateAccount()
+                user.getPrivateAccount(),
+                user.getCreatedAt()
         );
     }
 }

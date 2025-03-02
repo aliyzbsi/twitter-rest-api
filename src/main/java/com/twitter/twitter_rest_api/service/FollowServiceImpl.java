@@ -56,7 +56,8 @@ public class FollowServiceImpl implements FollowService {
                 following.getFollowingCount(),
                 following.getTweetsCount(),
                 following.getVerified(),
-                following.getPrivateAccount()
+                following.getPrivateAccount(),
+                following.getCreatedAt()
         );
     }
 
@@ -91,7 +92,8 @@ public class FollowServiceImpl implements FollowService {
                 following.getFollowingCount(),
                 following.getTweetsCount(),
                 following.getVerified(),
-                following.getPrivateAccount()
+                following.getPrivateAccount(),
+                following.getCreatedAt()
         );
     }
 
@@ -112,7 +114,8 @@ public class FollowServiceImpl implements FollowService {
                         user.getFollowingCount(),
                         user.getTweetsCount(),
                         user.getVerified(),
-                        user.getPrivateAccount()
+                        user.getPrivateAccount(),
+                        user.getCreatedAt()
                 ));
     }
 
@@ -133,7 +136,8 @@ public class FollowServiceImpl implements FollowService {
                         user.getFollowingCount(),
                         user.getTweetsCount(),
                         user.getVerified(),
-                        user.getPrivateAccount()
+                        user.getPrivateAccount(),
+                        user.getCreatedAt()
                 ));
     }
 

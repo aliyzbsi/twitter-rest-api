@@ -52,7 +52,8 @@ public class UserService implements UserDetailsService {
                 user.getFollowingCount(),
                 user.getTweetsCount(),
                 user.getVerified(),
-                user.getPrivateAccount()
+                user.getPrivateAccount(),
+                user.getCreatedAt()
         );
     }
     public UserResponse getById(Long id){
@@ -70,7 +71,8 @@ public class UserService implements UserDetailsService {
                 user.getFollowingCount(),
                 user.getTweetsCount(),
                 user.getVerified(),
-                user.getPrivateAccount()
+                user.getPrivateAccount(),
+                user.getCreatedAt()
         );
     }
 
@@ -122,7 +124,8 @@ public class UserService implements UserDetailsService {
                 user.getFollowingCount(),
                 user.getTweetsCount(),
                 user.getVerified(),
-                user.getPrivateAccount()
+                user.getPrivateAccount(),
+                user.getCreatedAt()
         );
     }
 }

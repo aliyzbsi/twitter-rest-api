@@ -113,22 +113,17 @@ public class TweetController {
         return ResponseEntity.status(HttpStatus.CREATED).body(tweet);
     }
 
-    @PostMapping(value = "/{tweetId}/reply",consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Parameter(
-            name = "file",
-            description = "Yüklenecek fotoğraf (Optional)",
-            content = @Content(mediaType = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    )
-    @Operation(summary = "Tweet'e yanıt ver",
-            security = @SecurityRequirement(name = "Bearer Authentication"))
-    public ResponseEntity<TweetResponse> replyToTweet(
-            @PathVariable("tweetId") long tweetId,
-            @RequestParam(value = "media", required = false) MultipartFile media,
+    @PostMapping(value = "/{tweetId}/reply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Tweet'e yanıt ver")
+    public ResponseEntity<TweetDetailResponse> replyToTweet(
+            @PathVariable Long tweetId,
             @RequestParam("content") String content,
+            @RequestParam(value = "media", required = false) MultipartFile media,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        TweetResponse tweet = tweetService.replyToTweet(tweetId, content, media, userDetails.getUsername());
-        return ResponseEntity.status(HttpStatus.CREATED).body(tweet);
+        TweetDetailResponse reply = tweetService.replyToTweet(
+                tweetId, content, media, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(reply);
     }
 
 

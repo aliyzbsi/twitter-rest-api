@@ -68,7 +68,8 @@ public class RefreshTokenService {
                 user.getFollowingCount(),
                 user.getTweetsCount(),
                 user.getVerified(),
-                user.getPrivateAccount()
+                user.getPrivateAccount(),
+                user.getCreatedAt()
         );
     }
 }

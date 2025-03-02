@@ -41,70 +41,46 @@ public interface TweetRepository extends JpaRepository<Tweet,Long> {
             @Param("parentTweet") Tweet parentTweet,
             @Param("tweetType") TweetType tweetType
     );
-    // N+1 sorgu problemini çözmek için fetch join kullanıyoruz
-    @Query("SELECT DISTINCT t FROM Tweet t " +
-            "LEFT JOIN FETCH t.likes " +
-            "LEFT JOIN FETCH t.user " +
-            "WHERE t.id = :id")
-    Optional<Tweet> findByIdWithLikes(@Param("id") Long id);
-
-    // Toplu tweet çekme işlemlerinde de fetch join kullanıyoruz
-    @Query("SELECT DISTINCT t FROM Tweet t " +
-            "LEFT JOIN FETCH t.likes " +
-            "LEFT JOIN FETCH t.user " +
-            "ORDER BY t.createdAt DESC")
-    Page<Tweet> findAllWithLikes(Pageable pageable);
-
-    // Kullanıcının bir tweet'i retweet edip etmediğini kontrol etmek için sorgu
-    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END FROM Tweet t " +
-            "WHERE t.user = :user AND t.parentTweet = :tweet AND t.tweetType = 'RETWEET'")
-    boolean hasUserRetweeted(@Param("user") User user, @Param("tweet") Tweet tweet);
-
-
-    // Tek bir tweet'i tüm detaylarıyla getiren sorgu
-    @Query("SELECT DISTINCT t FROM Tweet t " +
-            "LEFT JOIN FETCH t.likes " +
-            "LEFT JOIN FETCH t.user " +
-            "LEFT JOIN FETCH t.parentTweet " +
-            "WHERE t.id = :id")
+    // Tweet'i tüm detaylarıyla getir
+    @Query("""
+        SELECT t FROM Tweet t
+        LEFT JOIN FETCH t.user u
+        LEFT JOIN FETCH t.inReplyToTweet rt
+     
+        WHERE t.id = :id
+        """)
     Optional<Tweet> findByIdWithDetails(@Param("id") Long id);
 
+    // Bir tweet'e yapılan yanıtları getir
+    @Query("""
+    SELECT DISTINCT t FROM Tweet t
+    LEFT JOIN FETCH t.user u
+    WHERE t.parentTweet.id = :tweetId
+    AND t.tweetType = com.twitter.twitter_rest_api.entity.TweetType.REPLY
+    AND t.deleted = false
+    ORDER BY t.createdAt DESC
+    """)
+    Page<Tweet> findRepliesByTweetId(@Param("tweetId") Long tweetId, Pageable pageable);
 
-    // Tüm tweetleri gerekli ilişkilerle birlikte getiren sorgu
-    @Query("SELECT DISTINCT t FROM Tweet t " +
-            "LEFT JOIN FETCH t.likes " +
-            "LEFT JOIN FETCH t.user " +
-            "LEFT JOIN FETCH t.parentTweet " +
-            "ORDER BY t.createdAt DESC")
-    Page<Tweet> findAllWithDetails(Pageable pageable);
 
-    @Query("SELECT DISTINCT t FROM Tweet t " +
-            "LEFT JOIN FETCH t.likes " +
-            "LEFT JOIN FETCH t.user " +
-            "LEFT JOIN FETCH t.parentTweet " +
-            "WHERE t.deleted = false " +
-            "ORDER BY t.createdAt DESC")
+
+    // Ana sayfa için tweetleri getir
+    @Query("""
+        SELECT t FROM Tweet t
+        LEFT JOIN FETCH t.user u
+        WHERE t.deleted = false
+        ORDER BY t.createdAt DESC
+        """)
     Page<Tweet> findAllNonDeletedTweets(Pageable pageable);
 
-    @Query("SELECT DISTINCT t FROM Tweet t " +
-            "LEFT JOIN FETCH t.likes " +
-            "LEFT JOIN FETCH t.user " +
-            "LEFT JOIN FETCH t.parentTweet " +
-            "WHERE t.deleted = false AND t.user.id = :userId " +
-            "ORDER BY t.createdAt DESC")
-    Page<Tweet> findNonDeletedTweetsByUserId(@Param("userId") Long userId, Pageable pageable);
-
-    // Tweete verilen yanıtları bulan query
-    @Query("SELECT t FROM Tweet t " +
-            "LEFT JOIN FETCH t.user " +
-            "WHERE t.parentTweet = :parentTweet " +
-            "AND t.tweetType = :tweetType " +
-            "ORDER BY t.createdAt DESC")
-    Page<Tweet> findRepliesByParentTweetAndType(
-            @Param("parentTweet") Tweet parentTweet,
-            @Param("tweetType") TweetType tweetType,
-            Pageable pageable
-    );
-
+    // Kullanıcının tweetlerini getir
+    @Query("""
+        SELECT t FROM Tweet t
+        LEFT JOIN FETCH t.user u
+        WHERE t.user.id = :userId
+        AND t.deleted = false
+        ORDER BY t.createdAt DESC
+        """)
+    Page<Tweet> findByUserIdNonDeleted(@Param("userId") Long userId, Pageable pageable);
     List<Tweet> findByParentTweetAndTweetType(Tweet existingTweet, TweetType tweetType);
 }

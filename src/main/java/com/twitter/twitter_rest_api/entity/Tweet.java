@@ -66,7 +66,7 @@ public class Tweet {
     private User user;
 
     //Eğer tweet retweet yada tweete verilen yanıtsa bunu belirtmek için hangi tweete bağlı olduğunu belirttik
-    @ManyToOne(fetch = FetchType.LAZY,cascade = {CascadeType.DETACH,CascadeType.MERGE,CascadeType.PERSIST,CascadeType.REFRESH})
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH})
     @JoinColumn(name = "parent_tweet_id")
     @JsonIgnore
     private Tweet parentTweet;
@@ -82,9 +82,16 @@ public class Tweet {
     @JsonIgnore
     private Set<User> retweetedBy = new HashSet<>();
 
-    @OneToMany(mappedBy = "parentTweet")
+    // Yanıt ilişkileri - Thread yapısı için
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "in_reply_to_tweet_id")
     @JsonIgnore
-    private Set<Tweet> replies=new HashSet<>();
+    private Tweet inReplyToTweet;
+
+
+    @OneToMany(mappedBy = "inReplyToTweet")
+    @JsonIgnore
+    private Set<Tweet> replies = new HashSet<>();
 
     @Column(name = "is_deleted")
     private boolean deleted = false;
@@ -136,9 +143,14 @@ public class Tweet {
             this.replyCount--;
         }
     }
-
-
-
+    @PrePersist
+    @PreUpdate
+    private void prePersist() {
+        if (this.tweetType == TweetType.REPLY) {
+            // Reply type tweet'lerde parentTweet ve inReplyToTweet aynı olmalı
+            this.inReplyToTweet = this.parentTweet;
+        }
+    }
 
 
     // Tweet silinmeden önce parent tweet'in sayaçlarını güncelle

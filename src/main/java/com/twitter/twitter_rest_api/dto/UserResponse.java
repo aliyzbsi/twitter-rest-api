@@ -1,5 +1,7 @@
 package com.twitter.twitter_rest_api.dto;
 
+import java.time.LocalDateTime;
+
 public record UserResponse(Long id,
                            String firstAndLastName,
                            String username,
@@ -11,5 +13,6 @@ public record UserResponse(Long id,
                            Integer followingCount,
                            Integer tweetsCount,
                            Boolean verified,
-                           Boolean privateAccount) {
+                           Boolean privateAccount,
+                           LocalDateTime createdAt) {
 }

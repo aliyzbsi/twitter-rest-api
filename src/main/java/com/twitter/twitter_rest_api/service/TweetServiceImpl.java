@@ -1,10 +1,7 @@
 package com.twitter.twitter_rest_api.service;
 
 import com.twitter.twitter_rest_api.dto.*;
-import com.twitter.twitter_rest_api.entity.MediaType;
-import com.twitter.twitter_rest_api.entity.Tweet;
-import com.twitter.twitter_rest_api.entity.TweetType;
-import com.twitter.twitter_rest_api.entity.User;
+import com.twitter.twitter_rest_api.entity.*;
 import com.twitter.twitter_rest_api.exceptions.ApiException;
 import com.twitter.twitter_rest_api.mapper.TweetMapper;
 import com.twitter.twitter_rest_api.repository.TweetLikeRepository;
@@ -12,6 +9,7 @@ import com.twitter.twitter_rest_api.repository.TweetRepository;
 import com.twitter.twitter_rest_api.repository.UserRepository;
 import com.twitter.twitter_rest_api.validations.TweetValidations;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor //Contructor injection için
@@ -37,6 +35,7 @@ public class TweetServiceImpl implements TweetService {
     private final TweetLikeRepository tweetLikeRepository;
     private final TweetMapper tweetMapper;
     private final S3Service s3Service;
+
 
 
     @Override
@@ -60,7 +59,7 @@ public class TweetServiceImpl implements TweetService {
         User currentUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı!", HttpStatus.NOT_FOUND));
 
-        Page<Tweet> tweets = tweetRepository.findNonDeletedTweetsByUserId(userId, pageable);
+        Page<Tweet> tweets = tweetRepository.findByUserIdNonDeleted(userId, pageable);
         return tweets.map(tweet -> tweetMapper.toTweetResponse(tweet, currentUser));
     }
 
@@ -95,20 +94,6 @@ public class TweetServiceImpl implements TweetService {
 
 
     @Override
-    public Page<TweetResponse> findRepliesByTweetId(Long tweetId, Pageable pageable, String username) {
-        User currentUser = userRepository.findByEmail(username)
-                .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı", HttpStatus.NOT_FOUND));
-        Tweet parentTweet=tweetRepository.findById(tweetId)
-                .orElseThrow(() -> new ApiException("Tweet bulunamadı", HttpStatus.NOT_FOUND));
-        Page<Tweet> replies=tweetRepository.findRepliesByParentTweetAndType(
-                parentTweet,
-                TweetType.REPLY,
-                pageable
-        );
-        return replies.map(reply->tweetMapper.toTweetResponse(reply,currentUser));
-    }
-
-    @Override
     @Transactional
     public TweetDetailResponse createTweet(String content, MultipartFile media, String username) {
         User user=userRepository.findByEmail(username)
@@ -130,6 +115,57 @@ public class TweetServiceImpl implements TweetService {
         tweetRepository.save(newTweet);
         user.incrementTweetsCount();
         return tweetMapper.toTweetDetailResponse(newTweet,user);
+    }
+
+    @Override
+    public Page<TweetResponse> findRepliesByTweetId(Long tweetId, Pageable pageable, String username) {
+        log.debug("Finding replies for tweet ID: {} with page: {}", tweetId, pageable.getPageNumber());
+
+        // Mevcut kullanıcıyı bul
+        User currentUser = userRepository.findByEmail(username)
+                .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı", HttpStatus.NOT_FOUND));
+        log.debug("Current user found: {}", currentUser.getUsername());
+
+        // Tweet'in var olduğunu kontrol et
+        Tweet parentTweet = tweetRepository.findById(tweetId)
+                .orElseThrow(() -> new ApiException("Tweet bulunamadı", HttpStatus.NOT_FOUND));
+        log.debug("Parent tweet found: {}", parentTweet.getId());
+
+        // Parent tweet'in detaylarını logla
+        log.debug("Parent tweet details - ID: {}, Content: {}, Type: {}",
+                parentTweet.getId(),
+                parentTweet.getContent(),
+                parentTweet.getTweetType());
+
+        // Yanıtları getir
+        Page<Tweet> replies = tweetRepository.findRepliesByTweetId(tweetId, pageable);
+        log.debug("Found {} replies", replies.getTotalElements());
+
+        // Eğer yanıt yoksa nedenini anlamak için veritabanını kontrol et
+        if (replies.isEmpty()) {
+            // Manuel olarak yanıtları kontrol et
+            List<Tweet> allReplies = tweetRepository.findAll()
+                    .stream()
+                    .filter(t -> t.getTweetType() == TweetType.REPLY)
+                    .filter(t -> !t.isDeleted())
+                    .filter(t -> t.getParentTweet() != null && t.getParentTweet().getId().equals(tweetId))
+                    .toList();
+
+            log.debug("Manual reply check found {} potential replies", allReplies.size());
+            allReplies.forEach(reply -> {
+                log.debug("Potential reply - ID: {}, ParentID: {}, Type: {}, Deleted: {}",
+                        reply.getId(),
+                        reply.getParentTweet() != null ? reply.getParentTweet().getId() : "null",
+                        reply.getTweetType(),
+                        reply.isDeleted());
+            });
+        }
+
+        return replies.map(reply -> {
+            TweetResponse response = tweetMapper.toTweetResponse(reply, currentUser);
+            response.setParentTweetID(tweetId);
+            return response;
+        });
     }
 
     @Override

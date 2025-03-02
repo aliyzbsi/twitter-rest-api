@@ -151,7 +151,8 @@ public class AuthenticationService {
                 user.getFollowingCount(),
                 user.getTweetsCount(),
                 user.getVerified(),
-                user.getPrivateAccount()
+                user.getPrivateAccount(),
+                user.getCreatedAt()
         );
     }
 

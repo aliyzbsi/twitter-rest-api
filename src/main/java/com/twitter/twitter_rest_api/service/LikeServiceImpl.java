@@ -37,7 +37,9 @@ public class LikeServiceImpl implements LikeService{
                     .orElseThrow(() -> new ApiException("Kullanıcı bulunamadı", HttpStatus.NOT_FOUND));
             Tweet tweet = tweetRepository.findById(tweetId)
                     .orElseThrow(() -> new ApiException("Tweet bulunamadı", HttpStatus.NOT_FOUND));
-
+            if(tweet.isDeleted()){
+                throw new ApiException("Silinmiş Tweet Beğenilemez",HttpStatus.BAD_REQUEST);
+            }
             // Hedef tweet'i belirle (retweet ise parent tweet'i al)
             Tweet targetTweet = tweet.getTweetType() == TweetType.RETWEET
                     ? tweet.getParentTweet()
